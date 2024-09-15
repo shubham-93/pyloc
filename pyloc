@@ -2,6 +2,10 @@
 """
 Print the true number of lines of Python code in project directory or file.
 Excludes # comments, docstring lines and pure whitespace lines.
+
+Author: Shubham Maheshwari
+email: shubham.93@gmail.com
+GitHub: https://github.com/shubham-93
 """
 
 import argparse
