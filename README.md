@@ -44,3 +44,5 @@ You can now just `cd` to the project directory you are interested in and simply 
 ```
 pyloc .
 ```
+
+Terminal sessions recorded and GIFs created using [asciinema](https://github.com/asciinema).
