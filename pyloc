@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""
+Print the true number of lines of Python code in project directory or file.
+Excludes # comments, docstring lines and pure whitespace lines.
+"""
+
+import argparse
+import pathlib
+from os import PathLike
+from statistics import mean, median
+
+
+def get_loc(file: PathLike | str) -> int:
+    """Get the number of lines of Python code in a file
+    excluding comments, docstrings and pure whitespaces."""
+    num_lines = 0
+    with open(file, encoding="utf-8", errors="replace") as f:
+        lines = f.readlines()
+        is_docstring = False
+        for line in lines:
+            line_stripped = line.strip()
+            # Exclude the start/end of a docstring that starts and ends on different lines
+            if (line_stripped.startswith('"""') and line_stripped == '"""') or (
+                line_stripped.startswith("'''") and line_stripped == "'''"
+            ):
+                is_docstring = not is_docstring
+                continue
+            # Exclude lines within a docstring that starts and ends on different lines
+            if is_docstring:
+                continue
+            # Exclude comments that start with #
+            if line_stripped.startswith("#"):
+                continue
+            # Exclude docstrings that start and end on the same line
+            if (line_stripped.startswith('"""') and line_stripped.endswith('"""')) or (
+                line_stripped.startswith("'''") and line_stripped.endswith("'''")
+            ):
+                continue
+            # Exclude pure whitespace lines
+            if line_stripped == "":
+                continue
+
+            num_lines += 1
+    return num_lines
+
+
+parser = argparse.ArgumentParser(
+    description="Print the true number of lines of Python code in project directory or file. Excludes # comments, docstring lines and pure whitespace lines."
+)
+# Add arguments
+parser.add_argument(
+    "pathname",
+    type=str,
+    help="Path to file or directory. If directory, glob filenames recursively to match the default pattern of *.py",
+)
+parser.add_argument(
+    "-p",
+    dest="pattern",
+    type=str,
+    help='[OPTIONAL] Pattern of filename to match e.g. "test_*.py"',
+)
+parser.add_argument(
+    "-a",
+    dest="all_files",
+    action="store_true",
+    help="[OPTIONAL] List all files in the supplied directory with their counts of lines of code",
+)
+parser.add_argument(
+    "-s",
+    dest="show_statistics",
+    action="store_true",
+    help="[OPTIONAL] Show the mean, median and max of lines of code in the supplied directory",
+)
+
+args = parser.parse_args()
+pathname = args.pathname
+pattern = args.pattern
+all_files = args.all_files
+show_statistics = args.show_statistics
+# *.py is the default filename pattern when not explicitly provided as an option
+if pattern is None:
+    pattern = "*.py"
+
+# Total number of true Python lines of code
+loc_total = 0
+path = pathlib.Path(pathname)
+
+if path.is_file():
+    loc_total += get_loc(path)
+elif path.is_dir():
+    file_locs: list[int] = []
+    for file in path.rglob(pattern):
+        file_loc = get_loc(file)
+        if show_statistics:
+            file_locs.append(file_loc)
+        if all_files:
+            print(f"{file}: {file_loc}")
+        loc_total += file_loc
+else:
+    raise FileNotFoundError(f"pyloc: No such file or directory: {path}")
+    # # Can also exit with an error code like below
+    # import sys
+    # print(f"pyloc: No such file or directory: {path}", file=sys.stderr)
+    # sys.exit(1)
+
+print(f"Total: {loc_total}")
+if show_statistics and path.is_dir() and file_locs:
+    print(f"In {len(file_locs)} files:")
+    print(f"Mean: {int(round(mean(file_locs), 0))}")
+    print(f"Median: {int(round(median(file_locs), 0))}")
+    print(f"Max: {max(file_locs)}")
