@@ -21,13 +21,20 @@ def get_loc(file: PathLike | str) -> int:
     with open(file, encoding="utf-8", errors="replace") as f:
         lines = f.readlines()
         is_docstring = False
+        # The sequence of characters used to begin and end a docstring (""" or ''')
+        docstring_identifier = None
         for line in lines:
             line_stripped = line.strip()
             # Exclude the start/end of a docstring that starts and ends on different lines
-            if (line_stripped.startswith('"""') and line_stripped == '"""') or (
-                line_stripped.startswith("'''") and line_stripped == "'''"
-            ):
-                is_docstring = not is_docstring
+            if line_stripped in ['"""', "'''"]:
+                if docstring_identifier is None:
+                    docstring_identifier = line_stripped
+                    is_docstring = not is_docstring
+                    continue
+                if line_stripped == docstring_identifier:
+                    docstring_identifier = None
+                    is_docstring = not is_docstring
+                    continue
                 continue
             # Exclude lines within a docstring that starts and ends on different lines
             if is_docstring:
@@ -94,12 +101,15 @@ if path.is_file():
 elif path.is_dir():
     file_locs: list[int] = []
     for file in path.rglob(pattern):
-        file_loc = get_loc(file)
-        if show_statistics:
-            file_locs.append(file_loc)
-        if all_files:
-            print(f"{file}: {file_loc}")
-        loc_total += file_loc
+        # Check if the path is indeed a file. This is to prevent an occasional error
+        # arising from trying to call `get_loc()` on a directory (e.g. plotly.py/)
+        if file.is_file():
+            file_loc = get_loc(file)
+            if show_statistics:
+                file_locs.append(file_loc)
+            if all_files:
+                print(f"{file}: {file_loc}")
+            loc_total += file_loc
 else:
     raise FileNotFoundError(f"pyloc: No such file or directory: {path}")
     # # Can also exit with an error code like below

@@ -68,3 +68,40 @@ class Animal:
 
 
 
+"""
+This is another multiline docstring with ''' sprinkled around
+
+
+'''
+
+
+
+'''
+'''
+
+
+
+
+
+'''
+
+"""
+
+
+
+
+'''
+This is another multiline docstring with """ sprinkled around
+
+
+"""
+"""
+
+
+
+
+"""
+
+
+
+'''
