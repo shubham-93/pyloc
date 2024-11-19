@@ -20,35 +20,48 @@ def get_loc(file: PathLike | str) -> int:
     num_lines = 0
     with open(file, encoding="utf-8", errors="replace") as f:
         lines = f.readlines()
-        is_docstring = False
+        in_docstring = False
         # The sequence of characters used to begin and end a docstring (""" or ''')
         docstring_identifier = None
         for line in lines:
             line_stripped = line.strip()
-            # Exclude the start/end of a docstring that starts and ends on different lines
-            if line_stripped in ['"""', "'''"]:
-                if docstring_identifier is None:
-                    docstring_identifier = line_stripped
-                    is_docstring = not is_docstring
-                    continue
-                if line_stripped == docstring_identifier:
-                    docstring_identifier = None
-                    is_docstring = not is_docstring
-                    continue
-                continue
-            # Exclude lines within a docstring that starts and ends on different lines
-            if is_docstring:
+            # Exclude pure whitespace lines
+            if line_stripped == "":
                 continue
             # Exclude comments that start with #
             if line_stripped.startswith("#"):
                 continue
             # Exclude docstrings that start and end on the same line
-            if (line_stripped.startswith('"""') and line_stripped.endswith('"""')) or (
-                line_stripped.startswith("'''") and line_stripped.endswith("'''")
+            if (
+                line_stripped.startswith('"""')
+                and line_stripped.endswith('"""')
+                and line_stripped != '"""'
+            ) or (
+                line_stripped.startswith("'''")
+                and line_stripped.endswith("'''")
+                and line_stripped != "'''"
             ):
                 continue
-            # Exclude pure whitespace lines
-            if line_stripped == "":
+            # Exclude the start/end of a docstring that starts and ends on different lines (a multiline docstring)
+            if (
+                (line_stripped.startswith('"""') and not line_stripped.endswith('"""'))
+                or (line_stripped.startswith("'''") and not line_stripped.endswith("'''"))
+                or line_stripped == '"""'
+                or line_stripped == "'''"
+            ) and (not in_docstring):
+                in_docstring = not in_docstring
+                if line_stripped.startswith('"""'):
+                    docstring_identifier = '"""'
+                else:
+                    docstring_identifier = "'''"
+                continue
+            # Capture the end of a multiline docstring and stop tracking it
+            if in_docstring and (docstring_identifier in line_stripped):
+                in_docstring = not in_docstring
+                docstring_identifier = None
+                continue
+            # Exclude lines within a docstring that starts and ends on different lines
+            if in_docstring:
                 continue
 
             num_lines += 1
